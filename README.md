@@ -1,4 +1,4 @@
-# 📚 Whatpad — A Wattpad-Inspired Story Platform
+# 📚 InkyThinky — A Wattpad-Inspired Story Platform
 
 A full-stack web application where users can write, publish, and read stories. Built with **React**, **Node.js/Express**, and **MySQL**.
 
