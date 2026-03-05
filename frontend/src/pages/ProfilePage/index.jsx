@@ -23,7 +23,6 @@ const getCurrentUserId = () => {
   if (!token) return null;
   
   try {
-    // Simple JWT decode (base64)
     const payload = JSON.parse(atob(token.split('.')[1]));
     return payload.id || payload.userId || payload.sub;
   } catch (err) {
@@ -51,7 +50,7 @@ const apiRequest = async (endpoint, options = {}) => {
 };
 
 export default function ProfilePage() {
-  const { userId } = useParams(); // URL param for viewing other profiles
+  const { userId } = useParams();
   const navigate = useNavigate();
   const [activeTab, setActiveTab] = useState('intro');
   const [currentPage, setCurrentPage] = useState('profile');
@@ -65,6 +64,7 @@ export default function ProfilePage() {
     email: '',
     avatar: '',
     bio: '',
+    bannerUrl: '',   // ✅ added
     created_at: null
   });
 
@@ -78,8 +78,9 @@ export default function ProfilePage() {
   const [userWorks, setUserWorks] = useState([]);
   const [isFollowing, setIsFollowing] = useState(false);
   const [followLoading, setFollowLoading] = useState(false);
-  const [fetchError, setFetchError] = useState(null); // Alert message for fetch errors
+  const [fetchError, setFetchError] = useState(null);
 
+  // ✅ FIXED: removed userData.banner_url from initial state (userData doesn't exist here)
   const [editData, setEditData] = useState({
     username: '',
     bio: '',
@@ -89,20 +90,18 @@ export default function ProfilePage() {
 
   // Reading Lists
   const [readingLists, setReadingLists] = useState([]);
-  const [readingListThumbnails, setReadingListThumbnails] = useState({}); // { listId: [thumbnails] }
+  const [readingListThumbnails, setReadingListThumbnails] = useState({});
   const [showCreateListModal, setShowCreateListModal] = useState(false);
   const [newListName, setNewListName] = useState('');
   const [newListDescription, setNewListDescription] = useState('');
   const [newListPrivacy, setNewListPrivacy] = useState('public');
   
-  // View reading list contents
   const [viewingList, setViewingList] = useState(null);
   const [listStories, setListStories] = useState([]);
   const [listSearchQuery, setListSearchQuery] = useState('');
   const [listCurrentPage, setListCurrentPage] = useState(1);
   const STORIES_PER_PAGE = 5;
 
-  // Avatar component with loading state to prevent flickering
   const AvatarImage = ({ src, alt, className, style, onError }) => {
     const [imageLoading, setImageLoading] = useState(true);
     const [imageError, setImageError] = useState(false);
@@ -142,17 +141,17 @@ export default function ProfilePage() {
         setLoading(true);
         setFetchError(null);
 
-        // Get current user ID from token or use URL param
         const currentUserId = getCurrentUserId();
         const profileUserId = userId || currentUserId || localStorage.getItem('userId') || '1';
         
-        // Check if viewing own profile
         setIsOwnProfile(!userId || userId === String(currentUserId));
 
         try {
           const profileRes = await apiRequest(`/users/${profileUserId}`);
           if (profileRes.ok) {
             const userData = profileRes.data;
+
+            // ✅ FIXED: added bannerUrl from userData.banner_url
             setProfile({
               id: userData.id,
               name: userData.username,
@@ -160,13 +159,16 @@ export default function ProfilePage() {
               email: userData.email,
               avatar: userData.avatar_url || `${API_BASE_URL}/uploads/avatars/default-avatar.png`,
               bio: userData.bio || '',
-              created_at: userData.created_at
+              created_at: userData.created_at,
+              bannerUrl: userData.banner_url || ''   // ✅ persist banner
             });
 
+            // ✅ FIXED: added bannerUrl from userData.banner_url
             setEditData({
               username: userData.username,
               bio: userData.bio || '',
-              avatar_url: userData.avatar_url || ''
+              avatar_url: userData.avatar_url || '',
+              bannerUrl: userData.banner_url || ''   // ✅ persist banner
             });
           }
         } catch (err) {
@@ -174,7 +176,6 @@ export default function ProfilePage() {
           setFetchError('Không thể tải thông tin hồ sơ. Vui lòng thử lại sau.');
         }
 
-        // Fetch user works/stories
         try {
           const worksRes = await apiRequest(`/users/${profileUserId}/stories`);
           if (worksRes.ok) {
@@ -192,7 +193,6 @@ export default function ProfilePage() {
           if (followersRes.ok) {
             setStats(prev => ({ ...prev, followers: followersRes.data.length }));
             
-            // Check if current user is following this profile
             const currentUserId = getCurrentUserId();
             if (currentUserId && !isOwnProfile) {
               const isFollowingUser = followersRes.data.some(
@@ -205,10 +205,8 @@ export default function ProfilePage() {
           console.log('Error fetching followers:', err);
         }
 
-        // Fetch followed stories
         try {
           const followingStoriesRes = await apiRequest(`/followed-stories`);
-          console.log('Followed stories response:', followingStoriesRes);
           if (followingStoriesRes.ok) {
             setFollowingStories(followingStoriesRes.data || []);
             setStats(prev => ({ ...prev, following: followingStoriesRes.data?.length || 0 }));
@@ -219,22 +217,17 @@ export default function ProfilePage() {
           setStats(prev => ({ ...prev, following: 0 }));
         }
 
-        // Fetch reading lists for the user
         try {
           const readingListsRes = await apiRequest(`/users/${profileUserId}/reading-lists`);
-          console.log('Reading lists response:', readingListsRes);
-          // apiRequest returns the parsed JSON directly (array of lists)
           const lists = Array.isArray(readingListsRes) ? readingListsRes : [];
           setReadingLists(lists);
           
-          // Fetch thumbnails for each list
           const thumbnailsMap = {};
           for (const list of lists) {
             try {
               const thumbnails = await apiRequest(`/reading-lists/${list.id}/thumbnails`);
               thumbnailsMap[list.id] = Array.isArray(thumbnails) ? thumbnails : [];
             } catch (err) {
-              console.log(`Error fetching thumbnails for list ${list.id}:`, err);
               thumbnailsMap[list.id] = [];
             }
           }
@@ -255,7 +248,6 @@ export default function ProfilePage() {
     fetchUserData();
   }, [userId, isOwnProfile]);
 
-  // Follow/Unfollow functions
   const handleFollowUser = async () => {
     if (followLoading) return;
     
@@ -282,7 +274,6 @@ export default function ProfilePage() {
     try {
       const response = await apiRequest(`/followed-stories/${storyId}`, { method: 'DELETE' });
       if (response.ok) {
-        // Remove story from following list
         setFollowingStories(prev => prev.filter(story => story.id !== storyId));
         setStats(prev => ({ ...prev, following: prev.following - 1 }));
       }
@@ -296,7 +287,8 @@ export default function ProfilePage() {
     setEditData({
       username: profile.name.replace('@', ''),
       bio: profile.bio,
-      avatar_url: profile.avatar
+      avatar_url: profile.avatar,
+      bannerUrl: profile.bannerUrl || ''   // ✅ load current banner into edit form
     });
     setCurrentPage('edit');
   };
@@ -308,7 +300,8 @@ export default function ProfilePage() {
         body: JSON.stringify({
           username: editData.username,
           bio: editData.bio,
-          avatar_url: editData.avatar_url
+          avatar_url: editData.avatar_url,
+          banner_url: editData.bannerUrl
         })
       });
 
@@ -318,7 +311,8 @@ export default function ProfilePage() {
           name: editData.username,
           username: `@${editData.username}`,
           bio: editData.bio,
-          avatar: editData.avatar_url || `${API_BASE_URL}/uploads/avatars/default-avatar.png`
+          avatar: editData.avatar_url || `${API_BASE_URL}/uploads/avatars/default-avatar.png`,
+          bannerUrl: editData.bannerUrl
         });
         setCurrentPage('profile');
       }
@@ -359,7 +353,6 @@ export default function ProfilePage() {
     }
   };
 
-  // Reading List Handlers
   const handleCreateList = async () => {
     if (!newListName.trim()) {
       alert('Please enter a list name');
@@ -376,7 +369,7 @@ export default function ProfilePage() {
         body: JSON.stringify({
           name: newListName,
           description: newListDescription,
-          privacy: newListPrivacy
+          is_public: newListPrivacy === 'public' ? 1 : 0   // ✅ correct field name
         })
       });
 
@@ -398,13 +391,9 @@ export default function ProfilePage() {
 
   const fetchListStories = async (listId) => {
     try {
-      console.log('Fetching stories for list:', listId);
       const stories = await apiRequest(`/reading-lists/${listId}/stories`);
-      console.log('List stories response:', stories);
-      // apiRequest returns the parsed JSON directly (array of stories)
       setListStories(Array.isArray(stories) ? stories : []);
-      setListCurrentPage(1); // Reset to first page
-      console.log('Set listStories to:', Array.isArray(stories) ? stories : []);
+      setListCurrentPage(1);
     } catch (err) {
       console.error('Error fetching list stories:', err);
       setListStories([]);
@@ -416,9 +405,7 @@ export default function ProfilePage() {
       await apiRequest(`/reading-lists/${listId}/stories/${storyId}`, {
         method: 'DELETE'
       });
-      // Refresh the list stories
       await fetchListStories(listId);
-      // Update thumbnails
       const thumbnails = await apiRequest(`/reading-lists/${listId}/thumbnails`);
       setReadingListThumbnails(prev => ({
         ...prev,
@@ -447,7 +434,6 @@ export default function ProfilePage() {
   if (currentPage === 'edit') {
     return (
       <div className="min-vh-100 bg-light">
-        {/* Error Alert */}
         {fetchError && (
           <div className="container pt-3">
             <div className="alert alert-warning alert-dismissible fade show" role="alert">
@@ -458,7 +444,6 @@ export default function ProfilePage() {
           </div>
         )}
         
-        {/* Edit Profile Page */}
         <div className="container py-5">
           <div className="row justify-content-center">
             <div className="col-lg-8">
@@ -542,10 +527,7 @@ export default function ProfilePage() {
                       value={editData.avatar_url}
                       onChange={(e) => setEditData({...editData, avatar_url: e.target.value})}
                     />
-                    <small className="text-muted">
-                      {/* NOTE: Need to integrate upload image API from /upload/image */}
-                      Or use image upload feature
-                    </small>
+                    <small className="text-muted">Or use image upload feature</small>
                   </div>
 
                   <div className="mb-3">
@@ -589,7 +571,6 @@ export default function ProfilePage() {
 
   return (
     <div className="min-vh-100 bg-light">
-      {/* Error Alert */}
       {fetchError && (
         <div className="container pt-3">
           <div className="alert alert-warning alert-dismissible fade show" role="alert">
@@ -605,12 +586,14 @@ export default function ProfilePage() {
         className="position-relative" 
         style={{
           height: '280px',
-          backgroundImage: editData.bannerUrl ? `url(${editData.bannerUrl})` : 'linear-gradient(135deg, #8B4513 0%, #654321 100%)',
+          // ✅ FIXED: use profile.bannerUrl (persisted from DB) not just editData.bannerUrl
+          backgroundImage: (profile.bannerUrl || editData.bannerUrl) 
+            ? `url(${profile.bannerUrl || editData.bannerUrl})` 
+            : 'linear-gradient(135deg, #8B4513 0%, #654321 100%)',
           backgroundSize: 'cover',
           backgroundPosition: 'center'
         }}
       >
-        {/* Avatar positioned at bottom of banner */}
         <div className="position-absolute w-100 d-flex justify-content-center" style={{bottom: '-60px'}}>
           <AvatarImage 
             src={profile.avatar} 
@@ -621,13 +604,11 @@ export default function ProfilePage() {
         </div>
       </div>
 
-      {/* Profile Info */}
       <div className="container" style={{marginTop: '80px'}}>
         <div className="text-center mb-3">
           <h1 className="h3 fw-bold mb-1">{profile.name}</h1>
           <p className="text-muted mb-3">{profile.username}</p>
           
-          {/* Stats inline with separators */}
           <div className="d-flex justify-content-center align-items-center gap-2 mb-3 text-muted">
             <span>{stats.works} <span className="fw-normal">Works</span></span>
             <span>|</span>
@@ -637,51 +618,46 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Horizontal Tabs like Wattpad */}
         <div className="bg-white border-bottom">
           <div className="container">
             <ul className="nav nav-tabs border-0" style={{marginBottom: '-1px'}}>
               <li className="nav-item">
                 <button 
                   className={`nav-link border-0 px-4 py-3 ${activeTab === 'intro' ? 'active border-bottom border-3 text-dark fw-semibold' : 'text-muted'}`}
-                onClick={() => setActiveTab('intro')}
-                style={{background: 'transparent', borderBottomColor: activeTab === 'intro' ? '#FF6B00 !important' : 'transparent'}}
-              >
-                About
-              </button>
-            </li>
-
-            <li className="nav-item">
-              <button 
-                className={`nav-link border-0 px-4 py-3 ${activeTab === 'library' ? 'active border-bottom border-3 text-dark fw-semibold' : 'text-muted'}`}
-                onClick={() => setActiveTab('library')}
-                style={{background: 'transparent', borderBottomColor: activeTab === 'library' ? '#FF6B00 !important' : 'transparent'}}
-              >
-                Library
-              </button>
-            </li>
-
-            <li className="nav-item">
-              <button 
-                className={`nav-link border-0 px-4 py-3 ${activeTab === 'following' ? 'active border-bottom border-3 text-dark fw-semibold' : 'text-muted'}`}
-                onClick={() => setActiveTab('following')}
-                style={{background: 'transparent', borderBottomColor: activeTab === 'following' ? '#FF6B00 !important' : 'transparent'}}
-              >
-                Following
-              </button>
-            </li>
-          </ul>
+                  onClick={() => setActiveTab('intro')}
+                  style={{background: 'transparent'}}
+                >
+                  About
+                </button>
+              </li>
+              <li className="nav-item">
+                <button 
+                  className={`nav-link border-0 px-4 py-3 ${activeTab === 'library' ? 'active border-bottom border-3 text-dark fw-semibold' : 'text-muted'}`}
+                  onClick={() => setActiveTab('library')}
+                  style={{background: 'transparent'}}
+                >
+                  Library
+                </button>
+              </li>
+              <li className="nav-item">
+                <button 
+                  className={`nav-link border-0 px-4 py-3 ${activeTab === 'following' ? 'active border-bottom border-3 text-dark fw-semibold' : 'text-muted'}`}
+                  onClick={() => setActiveTab('following')}
+                  style={{background: 'transparent'}}
+                >
+                  Following
+                </button>
+              </li>
+            </ul>
           </div>
         </div>
 
-        {/* Tab Content with Sidebar Layout */}
         <div className="container py-4">
           <div className="row g-4">
             {/* Left Sidebar */}
             <div className="col-md-4">
               <div className="card border-0 shadow-sm mb-3">
                 <div className="card-body">
-                  {/* Follow/Edit Button */}
                   <div className="d-flex justify-content-between align-items-center mb-3">
                     {isOwnProfile ? (
                       <button 
@@ -712,7 +688,6 @@ export default function ProfilePage() {
                     )}
                   </div>
 
-                  {/* About Section */}
                   {profile.bio ? (
                     <div className="mb-3">
                       <p className="small mb-0">{profile.bio}</p>
@@ -729,7 +704,6 @@ export default function ProfilePage() {
                     </div>
                   )}
 
-                  {/* Joined Date */}
                   <div className="mb-3">
                     <p className="small text-muted mb-1">
                       <i className="bi bi-calendar3 me-2"></i>
@@ -742,338 +716,277 @@ export default function ProfilePage() {
 
             {/* Right Content Area */}
             <div className="col-md-8">
-            {activeTab === 'intro' && (
-              <div>
-                <div className="d-flex justify-content-between align-items-center mb-3">
-                  <h5 className="mb-0">Stories by {profile.name.split(' ')[0]}</h5>
-                  {isOwnProfile && (
-                    <button className="btn btn-link text-muted">
-                      <i className="bi bi-gear"></i>
-                    </button>
+              {activeTab === 'intro' && (
+                <div>
+                  <div className="d-flex justify-content-between align-items-center mb-3">
+                    <h5 className="mb-0">Stories by {profile.name.split(' ')[0]}</h5>
+                    {isOwnProfile && (
+                      <button className="btn btn-link text-muted">
+                        <i className="bi bi-gear"></i>
+                      </button>
+                    )}
+                  </div>
+                  {userWorks.length > 0 ? (
+                    <>
+                      <p className="text-muted small mb-3">
+                        {userWorks.filter(s => s.status === 'published').length} Published Stories • {userWorks.filter(s => s.status === 'draft').length} Drafts (only visible to you)
+                      </p>
+                      <div className="row g-3">
+                        {userWorks.map((story) => (
+                          <div key={story.id} className="col-12">
+                            <div 
+                              className="card border-0 shadow-sm" 
+                              style={{cursor: 'pointer'}}
+                              onClick={() => navigate(`/story/${story.id}`)}
+                            >
+                              <div className="card-body d-flex gap-3">
+                                <img 
+                                  src={story.cover_image || story.cover_url || '/assests/icons/default-cover.png'} 
+                                  alt={story.title}
+                                  className="rounded object-fit-cover"
+                                  style={{width: '80px', height: '120px'}}
+                                  onError={(e) => {
+                                    e.target.onerror = null;
+                                    e.target.src = '/assests/icons/default-cover.png';
+                                  }}
+                                />
+                                <div className="flex-grow-1">
+                                  <h6 className="fw-bold mb-2">{story.title}</h6>
+                                  <p className="small text-muted mb-2">
+                                    {story.description ? 
+                                      (story.description.length > 120 ? 
+                                        story.description.substring(0, 120) + '...' : 
+                                        story.description) 
+                                      : 'No description'
+                                    }
+                                  </p>
+                                  <div className="d-flex gap-3 small text-muted">
+                                    <span><i className="bi bi-eye me-1"></i>{story.views_count || 0}</span>
+                                    <span><i className="bi bi-star me-1"></i>{story.vote_count || 0}</span>
+                                    <span><i className="bi bi-book me-1"></i>{story.chapters_count || 0} chapters</span>
+                                  </div>
+                                  <div className="mt-2">
+                                    <small className="text-muted">
+                                      {story.status === 'draft' ? (
+                                        <span className="badge bg-secondary">DRAFT (only visible to you)</span>
+                                      ) : (
+                                        <span>Updated: {story.updated_at ? new Date(story.updated_at).toLocaleDateString('en-US') : 'Unknown'}</span>
+                                      )}
+                                    </small>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </>
+                  ) : (
+                    <div className="text-center py-5">
+                      <i className="bi bi-book text-secondary" style={{fontSize: '64px'}}></i>
+                      <h5 className="mt-4 mb-2">No works yet</h5>
+                      <p className="text-muted">
+                        {isOwnProfile ? 
+                          'Write and share your first story' : 
+                          'This author hasn\'t published any works yet'
+                        }
+                      </p>
+                      {isOwnProfile && (
+                        <button 
+                          className="btn btn-warning"
+                          onClick={() => window.location.href = '/work/story'}
+                        >
+                          <i className="bi bi-plus-lg me-2"></i>
+                          Create Story
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
-                {userWorks.length > 0 ? (
-                  <>
-                    <p className="text-muted small mb-3">
-                      {userWorks.filter(s => s.status === 'published').length} Published Stories • {userWorks.filter(s => s.status === 'draft').length} Drafts (only visible to you)
-                    </p>
-                    <div className="row g-3">
-                      {userWorks.map((story) => (
-                        <div key={story.id} className="col-12">
-                          <div 
-                            className="card border-0 shadow-sm" 
-                            style={{cursor: 'pointer'}}
-                            onClick={() => navigate(`/story/${story.id}`)}
-                          >
-                            <div className="card-body d-flex gap-3">
+              )}
+
+              {activeTab === 'library' && (
+                <div>
+                  {isOwnProfile && (
+                    <button 
+                      className="btn btn-dark rounded-pill mb-4"
+                      onClick={() => setShowCreateListModal(true)}
+                    >
+                      <i className="bi bi-plus-lg me-2"></i>
+                      Create reading list
+                    </button>
+                  )}
+
+                  {readingLists.map((list) => {
+                    const thumbnails = readingListThumbnails[list.id] || [];
+                    const storyCount = list.story_count || 0;
+                    
+                    return (
+                      <div 
+                        key={list.id}
+                        className="card border mb-3"
+                        style={{cursor: 'pointer'}}
+                        onClick={() => {
+                          setViewingList(list);
+                          fetchListStories(list.id);
+                        }}
+                      >
+                        <div className="card-body d-flex align-items-center gap-3 p-4">
+                          <div className="d-flex gap-1">
+                            {storyCount >= 3 && thumbnails.length >= 3 ? (
+                              <>
+                                <img 
+                                  src={thumbnails[0].cover_url || '/assests/icons/default-cover.png'} 
+                                  alt="Story 1"
+                                  className="rounded object-fit-cover"
+                                  style={{width: '60px', height: '90px'}}
+                                  onError={(e) => { e.target.onerror = null; e.target.src = '/assests/icons/default-cover.png'; }}
+                                />
+                                <div className="d-flex flex-column gap-1">
+                                  <img 
+                                    src={thumbnails[1].cover_url || '/assests/icons/default-cover.png'} 
+                                    alt="Story 2"
+                                    className="rounded object-fit-cover"
+                                    style={{width: '30px', height: '43px'}}
+                                    onError={(e) => { e.target.onerror = null; e.target.src = '/assests/icons/default-cover.png'; }}
+                                  />
+                                  <img 
+                                    src={thumbnails[2].cover_url || '/assests/icons/default-cover.png'} 
+                                    alt="Story 3"
+                                    className="rounded object-fit-cover"
+                                    style={{width: '30px', height: '43px'}}
+                                    onError={(e) => { e.target.onerror = null; e.target.src = '/assests/icons/default-cover.png'; }}
+                                  />
+                                </div>
+                              </>
+                            ) : thumbnails.length > 0 ? (
                               <img 
-                                src={story.cover_image || story.cover_url || '/assests/icons/default-cover.png'} 
-                                alt={story.title}
+                                src={thumbnails[0].cover_url || '/assests/icons/default-cover.png'} 
+                                alt="Story"
                                 className="rounded object-fit-cover"
-                                style={{width: '80px', height: '120px'}}
-                                onError={(e) => {
-                                  e.target.onerror = null;
-                                  e.target.src = '/assests/icons/default-cover.png';
-                                }}
+                                style={{width: '60px', height: '90px'}}
+                                onError={(e) => { e.target.onerror = null; e.target.src = '/assests/icons/default-cover.png'; }}
                               />
+                            ) : (
+                              <>
+                                <div className="d-flex align-items-center justify-content-center rounded" style={{width: '60px', height: '90px', backgroundColor: '#E8E8E8'}}>
+                                  <i className="bi bi-book text-secondary" style={{fontSize: '24px'}}></i>
+                                </div>
+                                <div className="d-flex flex-column gap-1">
+                                  <div className="d-flex align-items-center justify-content-center rounded" style={{width: '30px', height: '43px', backgroundColor: '#E8E8E8'}}>
+                                    <span className="text-secondary" style={{fontSize: '12px', fontWeight: 'bold'}}>W</span>
+                                  </div>
+                                  <div className="d-flex align-items-center justify-content-center rounded" style={{width: '30px', height: '43px', backgroundColor: '#E8E8E8'}}>
+                                    <span className="text-secondary" style={{fontSize: '12px', fontWeight: 'bold'}}>W</span>
+                                  </div>
+                                </div>
+                              </>
+                            )}
+                          </div>
+                          <div className="flex-grow-1">
+                            <h5 className="fw-bold mb-2">{list.name}</h5>
+                            {list.description && (
+                              <p className="small text-muted mb-2">{list.description}</p>
+                            )}
+                            <div className="text-muted small">
+                              <span>{storyCount} {storyCount === 1 ? 'story' : 'stories'}</span>
+                              {!list.is_public && (
+                                <i className="bi bi-lock-fill ms-2"></i>
+                              )}
+                            </div>
+                          </div>
+                          <button 
+                            className="btn btn-link text-muted"
+                            onClick={(e) => { e.stopPropagation(); }}
+                          >
+                            <i className="bi bi-three-dots-vertical" style={{fontSize: '24px'}}></i>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {readingLists.length === 0 && (
+                    <div className="text-center py-5">
+                      <i className="bi bi-bookmark text-muted" style={{fontSize: '64px'}}></i>
+                      <h5 className="mt-3 mb-2">No reading lists yet</h5>
+                      <p className="text-muted">Create your first reading list to organize your stories</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {activeTab === 'following' && (
+                <div className="py-4">
+                  <h5 className="mb-3">Following ({followingStories.length})</h5>
+                  {followingStories.length > 0 ? (
+                    <div className="row g-3">
+                      {followingStories.map((story) => (
+                        <div key={story.id} className="col-12">
+                          <div className="card border-0 shadow-sm">
+                            <div className="card-body d-flex gap-3">
+                              <Link to={`/story/${story.id}`}>
+                                <img 
+                                  src={story.cover_url || '/assests/icons/default-cover.png'} 
+                                  alt={story.title}
+                                  className="rounded object-fit-cover"
+                                  style={{width: '80px', height: '120px'}}
+                                  onError={(e) => { e.target.onerror = null; e.target.src = '/assests/icons/default-cover.png'; }}
+                                />
+                              </Link>
                               <div className="flex-grow-1">
-                                <h6 className="fw-bold mb-2">{story.title}</h6>
+                                <h6 className="fw-bold mb-2">
+                                  <Link to={`/story/${story.id}`} className="text-decoration-none text-dark">
+                                    {story.title}
+                                  </Link>
+                                </h6>
                                 <p className="small text-muted mb-2">
-                                  {story.description ? 
-                                    (story.description.length > 120 ? 
-                                      story.description.substring(0, 120) + '...' : 
-                                      story.description) 
-                                    : 'No description'
-                                  }
+                                  by <Link to={`/profile/${story.user_id}`} className="text-decoration-none">
+                                    {story.author_name}
+                                  </Link>
                                 </p>
+                                {story.description && (
+                                  <p className="small text-muted mb-2">
+                                    {story.description.length > 120 ? story.description.substring(0, 120) + '...' : story.description}
+                                  </p>
+                                )}
                                 <div className="d-flex gap-3 small text-muted">
-                                  <span><i className="bi bi-eye me-1"></i>{story.views_count || 0}</span>
+                                  <span><i className="bi bi-eye me-1"></i>{story.read_count || 0}</span>
                                   <span><i className="bi bi-star me-1"></i>{story.vote_count || 0}</span>
-                                  <span><i className="bi bi-book me-1"></i>{story.chapters_count || 0} chapters</span>
+                                  <span><i className="bi bi-book me-1"></i>{story.chapter_count || 0} chapters</span>
                                 </div>
                                 <div className="mt-2">
                                   <small className="text-muted">
-                                    {story.status === 'draft' ? (
-                                      <span className="badge bg-secondary">DRAFT (only visible to you)</span>
-                                    ) : (
-                                      <span>Updated: {story.updated_at ? new Date(story.updated_at).toLocaleDateString('en-US') : 'Unknown'}</span>
-                                    )}
+                                    Updated: {story.updated_at ? new Date(story.updated_at).toLocaleDateString('en-US') : 'Unknown'}
+                                  </small>
+                                  <small className="text-success d-block">
+                                    Following since {story.followed_at ? new Date(story.followed_at).toLocaleDateString('en-US') : 'Unknown'}
                                   </small>
                                 </div>
                               </div>
+                              {isOwnProfile && (
+                                <button 
+                                  className="btn btn-sm p-1 align-self-start"
+                                  onClick={() => handleUnfollowStory(story.id)}
+                                  style={{border: 'none', background: 'transparent', color: '#dc3545', fontSize: '14px', width: '24px', height: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center'}}
+                                >
+                                  <i className="bi bi-x-lg"></i>
+                                </button>
+                              )}
                             </div>
                           </div>
                         </div>
                       ))}
                     </div>
-                  </>
-                ) : (
-                  <div className="text-center py-5">
-                    <i className="bi bi-book text-secondary" style={{fontSize: '64px'}}></i>
-                    <h5 className="mt-4 mb-2">No works yet</h5>
-                    <p className="text-muted">
-                      {isOwnProfile ? 
-                        'Write and share your first story' : 
-                        'This author hasn\'t published any works yet'
-                      }
-                    </p>
-                    {isOwnProfile && (
-                      <button 
-                        className="btn btn-warning"
-                        onClick={() => window.location.href = '/create-story'}
-                      >
-                        <i className="bi bi-plus-lg me-2"></i>
-                        Create Story
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'library' && (
-              <div>
-                {/* Create Reading List Button */}
-                {isOwnProfile && (
-                  <button 
-                    className="btn btn-dark rounded-pill mb-4"
-                    onClick={() => setShowCreateListModal(true)}
-                  >
-                    <i className="bi bi-plus-lg me-2"></i>
-                    Create reading list
-                  </button>
-                )}
-
-                {/* Display all reading lists */}
-                {readingLists.map((list) => {
-                  const thumbnails = readingListThumbnails[list.id] || [];
-                  const storyCount = list.story_count || 0;
-                  
-                  return (
-                    <div 
-                      key={list.id}
-                      className="card border mb-3"
-                      style={{cursor: 'pointer'}}
-                      onClick={() => {
-                        setViewingList(list);
-                        // Fetch stories for this list
-                        fetchListStories(list.id);
-                      }}
-                    >
-                      <div className="card-body d-flex align-items-center gap-3 p-4">
-                        {/* Thumbnail Display */}
-                        <div className="d-flex gap-1">
-                          {storyCount >= 3 && thumbnails.length >= 3 ? (
-                            // Show first thumbnail + 2 smaller thumbnails on the side
-                            <>
-                              <img 
-                                src={thumbnails[0].cover_url || '/assests/icons/default-cover.png'} 
-                                alt="Story 1"
-                                className="rounded object-fit-cover"
-                                style={{width: '60px', height: '90px'}}
-                                onError={(e) => {
-                                  e.target.onerror = null;
-                                  e.target.src = '/assests/icons/default-cover.png';
-                                }}
-                              />
-                              <div className="d-flex flex-column gap-1">
-                                <img 
-                                  src={thumbnails[1].cover_url || '/assests/icons/default-cover.png'} 
-                                  alt="Story 2"
-                                  className="rounded object-fit-cover"
-                                  style={{width: '30px', height: '43px'}}
-                                  onError={(e) => {
-                                    e.target.onerror = null;
-                                    e.target.src = '/assests/icons/default-cover.png';
-                                  }}
-                                />
-                                <img 
-                                  src={thumbnails[2].cover_url || '/assests/icons/default-cover.png'} 
-                                  alt="Story 3"
-                                  className="rounded object-fit-cover"
-                                  style={{width: '30px', height: '43px'}}
-                                  onError={(e) => {
-                                    e.target.onerror = null;
-                                    e.target.src = '/assests/icons/default-cover.png';
-                                  }}
-                                />
-                              </div>
-                            </>
-                          ) : thumbnails.length > 0 ? (
-                            // Show only the first story's thumbnail
-                            <img 
-                              src={thumbnails[0].cover_url || '/assests/icons/default-cover.png'} 
-                              alt="Story"
-                              className="rounded object-fit-cover"
-                              style={{width: '60px', height: '90px'}}
-                              onError={(e) => {
-                                e.target.onerror = null;
-                                e.target.src = '/assests/icons/default-cover.png';
-                              }}
-                            />
-                          ) : (
-                            // Default placeholder
-                            <>
-                              <div 
-                                className="d-flex align-items-center justify-content-center rounded"
-                                style={{
-                                  width: '60px',
-                                  height: '90px',
-                                  backgroundColor: '#E8E8E8'
-                                }}
-                              >
-                                <i className="bi bi-book text-secondary" style={{fontSize: '24px'}}></i>
-                              </div>
-                              <div className="d-flex flex-column gap-1">
-                                <div 
-                                  className="d-flex align-items-center justify-content-center rounded"
-                                  style={{
-                                    width: '30px',
-                                    height: '43px',
-                                    backgroundColor: '#E8E8E8'
-                                  }}
-                                >
-                                  <span className="text-secondary" style={{fontSize: '12px', fontWeight: 'bold'}}>W</span>
-                                </div>
-                                <div 
-                                  className="d-flex align-items-center justify-content-center rounded"
-                                  style={{
-                                    width: '30px',
-                                    height: '43px',
-                                    backgroundColor: '#E8E8E8'
-                                  }}
-                                >
-                                  <span className="text-secondary" style={{fontSize: '12px', fontWeight: 'bold'}}>W</span>
-                                </div>
-                              </div>
-                            </>
-                          )}
-                        </div>
-                        <div className="flex-grow-1">
-                          <h5 className="fw-bold mb-2">{list.name}</h5>
-                          {list.description && (
-                            <p className="small text-muted mb-2">{list.description}</p>
-                          )}
-                          <div className="text-muted small">
-                            <span>{storyCount} {storyCount === 1 ? 'story' : 'stories'}</span>
-                            {!list.is_public && (
-                              <i className="bi bi-lock-fill ms-2"></i>
-                            )}
-                          </div>
-                        </div>
-                        <button 
-                          className="btn btn-link text-muted"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            // Handle menu options
-                          }}
-                        >
-                          <i className="bi bi-three-dots-vertical" style={{fontSize: '24px'}}></i>
-                        </button>
-                      </div>
+                  ) : (
+                    <div className="text-center py-5">
+                      <i className="bi bi-book-heart text-secondary" style={{fontSize: '64px'}}></i>
+                      <h5 className="mt-4 mb-2">Not following any stories yet</h5>
+                      <p className="text-muted">When you follow stories, they will appear here</p>
                     </div>
-                  );
-                })}
-
-                {readingLists.length === 0 && (
-                  <div className="text-center py-5">
-                    <i className="bi bi-bookmark text-muted" style={{fontSize: '64px'}}></i>
-                    <h5 className="mt-3 mb-2">No reading lists yet</h5>
-                    <p className="text-muted">Create your first reading list to organize your stories</p>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {activeTab === 'following' && (
-              <div className="py-4">
-                <h5 className="mb-3">Following ({followingStories.length})</h5>
-                {followingStories.length > 0 ? (
-                  <div className="row g-3">
-                    {followingStories.map((story) => (
-                      <div key={story.id} className="col-12">
-                        <div className="card border-0 shadow-sm">
-                          <div className="card-body d-flex gap-3">
-                            <Link to={`/story/${story.id}`}>
-                              <img 
-                                src={story.cover_url || '/assests/icons/default-cover.png'} 
-                                alt={story.title}
-                                className="rounded object-fit-cover"
-                                style={{width: '80px', height: '120px'}}
-                                onError={(e) => {
-                                  e.target.onerror = null;
-                                  e.target.src = '/assests/icons/default-cover.png';
-                                }}
-                              />
-                            </Link>
-                            <div className="flex-grow-1">
-                              <h6 className="fw-bold mb-2">
-                                <Link to={`/story/${story.id}`} className="text-decoration-none text-dark">
-                                  {story.title}
-                                </Link>
-                              </h6>
-                              <p className="small text-muted mb-2">
-                                by <Link to={`/profile/${story.user_id}`} className="text-decoration-none">
-                                  {story.author_name}
-                                </Link>
-                              </p>
-                              {story.description && (
-                                <p className="small text-muted mb-2">
-                                  {story.description.length > 120 ? 
-                                    story.description.substring(0, 120) + '...' : 
-                                    story.description
-                                  }
-                                </p>
-                              )}
-                              <div className="d-flex gap-3 small text-muted">
-                                <span><i className="bi bi-eye me-1"></i>{story.read_count || 0}</span>
-                                <span><i className="bi bi-star me-1"></i>{story.vote_count || 0}</span>
-                                <span><i className="bi bi-book me-1"></i>{story.chapter_count || 0} chapters</span>
-                              </div>
-                              <div className="mt-2">
-                                <small className="text-muted">
-                                  Updated: {story.updated_at ? new Date(story.updated_at).toLocaleDateString('en-US') : 'Unknown'}
-                                </small>
-                                <small className="text-success d-block">
-                                  Following since {story.followed_at ? new Date(story.followed_at).toLocaleDateString('en-US') : 'Unknown'}
-                                </small>
-                              </div>
-                            </div>
-                            {isOwnProfile && (
-                              <button 
-                                className="btn btn-sm p-1 align-self-start"
-                                onClick={() => handleUnfollowStory(story.id)}
-                                style={{
-                                  border: 'none',
-                                  background: 'transparent',
-                                  color: '#dc3545',
-                                  fontSize: '14px',
-                                  width: '24px',
-                                  height: '24px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center'
-                                }}
-                              >
-                                <i className="bi bi-x-lg"></i>
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-5">
-                    <i className="bi bi-book-heart text-secondary" style={{fontSize: '64px'}}></i>
-                    <h5 className="mt-4 mb-2">Not following any stories yet</h5>
-                    <p className="text-muted">
-                      When you follow stories, they will appear here
-                    </p>
-                  </div>
-                )}
-              </div>
-            )}
+                  )}
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -1086,11 +999,7 @@ export default function ProfilePage() {
             <div className="modal-content">
               <div className="modal-header border-0">
                 <h5 className="modal-title fw-bold">Create a new reading list</h5>
-                <button 
-                  type="button" 
-                  className="btn-close" 
-                  onClick={() => setShowCreateListModal(false)}
-                ></button>
+                <button type="button" className="btn-close" onClick={() => setShowCreateListModal(false)}></button>
               </div>
               <div className="modal-body">
                 <div className="mb-3">
@@ -1128,18 +1037,10 @@ export default function ProfilePage() {
                 </div>
               </div>
               <div className="modal-footer border-0">
-                <button 
-                  type="button" 
-                  className="btn btn-secondary rounded-pill px-4"
-                  onClick={() => setShowCreateListModal(false)}
-                >
+                <button type="button" className="btn btn-secondary rounded-pill px-4" onClick={() => setShowCreateListModal(false)}>
                   Cancel
                 </button>
-                <button 
-                  type="button" 
-                  className="btn btn-warning text-white rounded-pill px-4"
-                  onClick={handleCreateList}
-                >
+                <button type="button" className="btn btn-warning text-white rounded-pill px-4" onClick={handleCreateList}>
                   Create List
                 </button>
               </div>
@@ -1170,7 +1071,6 @@ export default function ProfilePage() {
                 ></button>
               </div>
               <div className="modal-body" style={{maxHeight: '70vh'}}>
-                {/* Search Bar */}
                 <div className="mb-3">
                   <div className="input-group">
                     <span className="input-group-text bg-light border-end-0">
@@ -1183,22 +1083,19 @@ export default function ProfilePage() {
                       value={listSearchQuery}
                       onChange={(e) => {
                         setListSearchQuery(e.target.value);
-                        setListCurrentPage(1); // Reset to first page on search
+                        setListCurrentPage(1);
                       }}
                     />
                   </div>
                 </div>
 
-                {/* Stories in List */}
                 {(() => {
                   const filteredStories = listStories.filter(story => 
                     story.title.toLowerCase().includes(listSearchQuery.toLowerCase())
                   );
-                  
                   const totalPages = Math.ceil(filteredStories.length / STORIES_PER_PAGE);
                   const startIndex = (listCurrentPage - 1) * STORIES_PER_PAGE;
-                  const endIndex = startIndex + STORIES_PER_PAGE;
-                  const paginatedStories = filteredStories.slice(startIndex, endIndex);
+                  const paginatedStories = filteredStories.slice(startIndex, startIndex + STORIES_PER_PAGE);
                   
                   return (
                     <>
@@ -1207,15 +1104,8 @@ export default function ProfilePage() {
                           <div className="col-12">
                             <div className="text-center py-5">
                               <i className="bi bi-bookmark text-muted" style={{fontSize: '64px'}}></i>
-                              <h5 className="mt-3 mb-2">
-                                {listSearchQuery ? 'No stories found' : 'No stories yet'}
-                              </h5>
-                              <p className="text-muted">
-                                {listSearchQuery ? 
-                                  'Try a different search term' : 
-                                  'Stories you add will appear here'
-                                }
-                              </p>
+                              <h5 className="mt-3 mb-2">{listSearchQuery ? 'No stories found' : 'No stories yet'}</h5>
+                              <p className="text-muted">{listSearchQuery ? 'Try a different search term' : 'Stories you add will appear here'}</p>
                             </div>
                           </div>
                         ) : (
@@ -1228,27 +1118,15 @@ export default function ProfilePage() {
                                     alt={story.title}
                                     className="rounded object-fit-cover"
                                     style={{width: '80px', height: '120px'}}
-                                    onError={(e) => {
-                                      e.target.onerror = null;
-                                      e.target.src = '/assests/icons/default-cover.png';
-                                    }}
+                                    onError={(e) => { e.target.onerror = null; e.target.src = '/assests/icons/default-cover.png'; }}
                                   />
                                   <div className="flex-grow-1">
                                     <h6 className="fw-bold mb-2">
-                                      <a href={`/story/${story.id}`} className="text-decoration-none text-dark">
-                                        {story.title}
-                                      </a>
+                                      <a href={`/story/${story.id}`} className="text-decoration-none text-dark">{story.title}</a>
                                     </h6>
+                                    <p className="small text-muted mb-2">by {story.author_name || story.username}</p>
                                     <p className="small text-muted mb-2">
-                                      by {story.author_name || story.username}
-                                    </p>
-                                    <p className="small text-muted mb-2">
-                                      {story.description ? 
-                                        (story.description.length > 150 ? 
-                                          story.description.substring(0, 150) + '...' : 
-                                          story.description) 
-                                        : 'No description'
-                                      }
+                                      {story.description ? (story.description.length > 150 ? story.description.substring(0, 150) + '...' : story.description) : 'No description'}
                                     </p>
                                     <div className="d-flex gap-3 small text-muted">
                                       <span><i className="bi bi-eye me-1"></i>{story.read_count || 0}</span>
@@ -1276,7 +1154,6 @@ export default function ProfilePage() {
                         )}
                       </div>
                       
-                      {/* Pagination */}
                       {totalPages > 1 && (
                         <div className="d-flex justify-content-center align-items-center gap-2 mt-3">
                           <button 
@@ -1286,9 +1163,7 @@ export default function ProfilePage() {
                           >
                             <i className="bi bi-chevron-left"></i>
                           </button>
-                          <span className="small text-muted">
-                            Page {listCurrentPage} of {totalPages}
-                          </span>
+                          <span className="small text-muted">Page {listCurrentPage} of {totalPages}</span>
                           <button 
                             className="btn btn-sm btn-outline-secondary"
                             disabled={listCurrentPage === totalPages}

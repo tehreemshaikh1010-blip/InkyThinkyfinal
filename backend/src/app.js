@@ -28,7 +28,9 @@ const PORT = process.env.PORT || 4000;
 app.use(cors());
 app.use(express.json({ charset: 'utf-8' }));
 app.use(express.urlencoded({ extended: true, charset: 'utf-8' }));
-
+ 
+const path = require('path');
+app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 // Set default charset for responses
 app.use((req, res, next) => {
     res.setHeader('Content-Type', 'application/json; charset=utf-8');

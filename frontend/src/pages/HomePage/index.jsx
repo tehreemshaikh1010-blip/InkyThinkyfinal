@@ -17,6 +17,7 @@ import ContinueReading from "../../components/ContinueReading";
 
 const HomePage = () => {
   const [stories, setStories] = useState([]);
+  const [featuredIndex, setFeaturedIndex] = useState(0);
   const [tags, setTags] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -103,7 +104,7 @@ const HomePage = () => {
 
   useEffect(() => {
     fetchData();
-    
+
     // Auto-refresh every 30 minutes (1800000 milliseconds)
     const refreshInterval = setInterval(() => {
       console.log('Auto-refreshing latest stories (30 min interval)...');
@@ -113,6 +114,20 @@ const HomePage = () => {
     // Cleanup interval on unmount
     return () => clearInterval(refreshInterval);
   }, [fetchData]);
+
+  // Auto rotate featured story every 6 seconds
+  useEffect(() => {
+    if (!stories || stories.length === 0) return;
+
+    // Reset to first story whenever new stories arrive
+    setFeaturedIndex(0);
+
+    const interval = setInterval(() => {
+      setFeaturedIndex(prev => (prev + 1) % stories.length);
+    }, 6000);
+
+    return () => clearInterval(interval);
+  }, [stories]);
 
   // Fetch reading history when login status changes
   useEffect(() => {
@@ -233,6 +248,9 @@ const HomePage = () => {
   const storiesByGenre = groupStoriesByTag();
   const genreCards = getGenreCardsForDisplay();
   const visibleGenreCards = genreCards.filter((genre) => genre.storyCount > 0);
+console.log("Stories:", stories);
+console.log("Tags:", tags);
+console.log("StoriesByGenre:", storiesByGenre);
 
   return (
     <Container fluid className={styles.homePage}>
@@ -262,50 +280,134 @@ const HomePage = () => {
           {/* Carousel Section */}
           <div className={styles.carouselSection}>
             <Container>
-              <Carousel className={styles.mainCarousel}>
-                <Carousel.Item>
-                  <div className={styles.carouselPlaceholder}>
-                    <div className={styles.carouselContent}>
-                      <Badge bg="primary" className={styles.carouselBadge}>
-                        Featured
-                      </Badge>
-                      <h2>Discover Amazing Stories</h2>
-                      <p>Your next favorite story is waiting for you</p>
-                      <Button variant="light" size="lg">
-                        Explore Now
-                      </Button>
+              <Carousel
+                className={styles.mainCarousel}
+                activeIndex={featuredIndex}
+                onSelect={() => { }}
+                controls={false}
+                indicators={false}
+                interval={null}
+              >
+                {stories.slice(0, 12).map((story) => (
+                  <Carousel.Item key={story.id}>
+                    <div
+                      className={styles.heroBanner}
+                      style={{
+                        backgroundImage: `url(${story.cover_url || "/assests/icons/default-cover.png"})`
+                      }}
+                    >
+                      <div className={styles.heroOverlay}>
+                        <Badge bg="danger" className={styles.heroBadge}>
+                          Featured Story
+                        </Badge>
+
+                        <h1 className={styles.heroTitle}>
+                          {story.title}
+                        </h1>
+
+                        <p className={styles.heroSubtitle}>
+                          {story.description?.slice(0, 150) || "Discover amazing stories"}
+                        </p>
+
+                        <Button
+                          size="lg"
+                          className={styles.heroButton}
+                          onClick={() => navigate(`/story/${story.id}`)}
+                        >
+                          Start Reading
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </Carousel.Item>
-                <Carousel.Item>
-                  <div className={styles.carouselPlaceholder}>
-                    <div className={styles.carouselContent}>
-                      <Badge bg="success" className={styles.carouselBadge}>
-                        Trending
-                      </Badge>
-                      <h2>Popular This Week</h2>
-                      <p>See what everyone is reading</p>
-                      <Button variant="light" size="lg">
-                        View Trending
-                      </Button>
-                    </div>
-                  </div>
-                </Carousel.Item>
-                <Carousel.Item>
-                  <div className={styles.carouselPlaceholder}>
-                    <div className={styles.carouselContent}>
-                      <Badge bg="warning" className={styles.carouselBadge}>
-                        New
-                      </Badge>
-                      <h2>Fresh Stories Daily</h2>
-                      <p>New stories added every day</p>
-                      <Button variant="light" size="lg">
-                        Browse New
-                      </Button>
-                    </div>
-                  </div>
-                </Carousel.Item>
+                  </Carousel.Item>
+                ))}
               </Carousel>
+
+              {/* <Carousel className={styles.mainCarousel}>
+                <Carousel.Item>
+                  <div
+                    className={styles.heroBanner}
+                    style={{
+                      backgroundImage: `url(${stories[0]?.cover_url || "/assests/icons/default-cover.png"})`
+                    }}
+                  >
+                    <div className={styles.heroOverlay}>
+                      <Badge bg="danger" className={styles.heroBadge}>Featured Story</Badge>
+
+                      <h1 className={styles.heroTitle}>
+                        {stories[0]?.title || "Discover Amazing Stories"}
+                      </h1>
+
+                      <p className={styles.heroSubtitle}>
+                        {stories[0]?.description?.slice(0, 140) || "Your next favorite story is waiting for you"}
+                      </p>
+
+                      <Button
+                        size="lg"
+                        className={styles.heroButton}
+                        onClick={() => navigate(`/story/${stories[0]?.id}`)}
+                      >
+                        Start Reading
+                      </Button>
+                    </div>
+                  </div>
+                </Carousel.Item>
+                <Carousel.Item>
+                  <div
+                    className={styles.heroBanner}
+                    style={{
+                      backgroundImage: `url(${stories[featuredIndex]?.cover_url || "/assests/icons/default-cover.png"})`
+                    }}
+                  >
+                    <div className={styles.heroOverlay}>
+                      <Badge bg="danger" className={styles.heroBadge}>Featured Story</Badge>
+
+                      <h1 className={styles.heroTitle}>
+                        {stories[featuredIndex]?.title || "Discover Amazing Stories"}
+                      </h1>
+
+                      <p className={styles.heroSubtitle}>
+                        {stories[featuredIndex]?.description?.slice(0, 140) || "Your next favorite story is waiting for you"}
+                      </p>
+
+                      <Button
+                        size="lg"
+                        className={styles.heroButton}
+                        onClick={() => navigate(`/story/${stories[featuredIndex]?.id}`)}
+                      >
+                        Start Reading
+                      </Button>
+                    </div>
+                  </div>
+                </Carousel.Item>
+                <Carousel.Item>
+                  <div
+                    className={styles.heroBanner}
+                    style={{
+                      backgroundImage: `url(${stories[featuredIndex]?.cover_url || "/assests/icons/default-cover.png"})`
+                    }}
+                  >
+                    <div className={styles.heroOverlay}>
+                      <Badge bg="danger" className={styles.heroBadge}>Featured Story</Badge>
+
+                      <h1 className={styles.heroTitle}>
+                        {stories[featuredIndex]?.title || "Discover Amazing Stories"}
+                      </h1>
+
+                      <p className={styles.heroSubtitle}>
+                        {stories[featuredIndex]?.description?.slice(0, 140) || "Your next favorite story is waiting for you"}
+                      </p>
+
+                      <Button
+                        size="lg"
+                        className={styles.heroButton}
+                        onClick={() => navigate(`/story/${stories[featuredIndex]?.id}`)}
+                      >
+                        Start Reading
+                      </Button>
+                    </div>
+                  </div>
+                </Carousel.Item>
+              </Carousel> */}
             </Container>
           </div>
           {/* Genres Row */}
@@ -344,56 +446,56 @@ const HomePage = () => {
                   {genreCards
                     .filter((genre) => genre.storyCount > 0) // Only show genres with stories
                     .map((genre) => (
-                    <Col
-                      key={genre.id}
-                      xs={6}
-                      sm={4}
-                      md={3}
-                      lg
-                      className="col-lg-custom"
-                    >
-                      <div 
-                        className={styles.genreCard}
-                        onClick={() => navigate(`/search?tag=${encodeURIComponent(genre.name)}`)}
-                        style={{ cursor: 'pointer' }}
+                      <Col
+                        key={genre.id}
+                        xs={6}
+                        sm={4}
+                        md={3}
+                        lg
+                        className="col-lg-custom"
                       >
-                        <div className={styles.genreThumbnailGrid}>
-                          {/* Large thumbnail (1st story) */}
-                          {genre.stories[0] && (
-                            <div className={styles.largeThumbnail}>
-                              <img
-                                src={genre.stories[0].cover_url || "/assests/icons/default-cover.png"}
-                                alt={genre.stories[0].title}
-                                onError={(e) => {
-                                  e.target.src = "/assests/icons/default-cover.png";
-                                }}
-                              />
-                            </div>
-                          )}
-                          {/* Small thumbnails (stories 2-5) - only show if there are more than 1 story */}
-                          {genre.stories.length > 1 && (
-                            <div className={styles.smallThumbnailsGrid}>
-                              {genre.stories.slice(1, 5).map((story, idx) => (
-                                <div key={idx} className={styles.smallThumbnail}>
-                                  <img
-                                    src={story.cover_url || "/assests/icons/default-cover.png"}
-                                    alt={story.title}
-                                    onError={(e) => {
-                                      e.target.src = "/assests/icons/default-cover.png";
-                                    }}
-                                  />
-                                </div>
-                              ))}
-                            </div>
-                          )}
+                        <div
+                          className={styles.genreCard}
+                          onClick={() => navigate(`/search?tag=${encodeURIComponent(genre.name)}`)}
+                          style={{ cursor: 'pointer' }}
+                        >
+                          <div className={styles.genreThumbnailGrid}>
+                            {/* Large thumbnail (1st story) */}
+                            {genre.stories[0] && (
+                              <div className={styles.largeThumbnail}>
+                                <img
+                                  src={genre.stories[0].cover_url || "/assests/icons/default-cover.png"}
+                                  alt={genre.stories[0].title}
+                                  onError={(e) => {
+                                    e.target.src = "/assests/icons/default-cover.png";
+                                  }}
+                                />
+                              </div>
+                            )}
+                            {/* Small thumbnails (stories 2-5) - only show if there are more than 1 story */}
+                            {genre.stories.length > 1 && (
+                              <div className={styles.smallThumbnailsGrid}>
+                                {genre.stories.slice(1, 5).map((story, idx) => (
+                                  <div key={idx} className={styles.smallThumbnail}>
+                                    <img
+                                      src={story.cover_url || "/assests/icons/default-cover.png"}
+                                      alt={story.title}
+                                      onError={(e) => {
+                                        e.target.src = "/assests/icons/default-cover.png";
+                                      }}
+                                    />
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                          {/* Genre tag at bottom right */}
+                          <div className={styles.genreTag}>
+                            {genre.name}
+                          </div>
                         </div>
-                        {/* Genre tag at bottom right */}
-                        <div className={styles.genreTag}>
-                          {genre.name}
-                        </div>
-                      </div>
-                    </Col>
-                  ))}
+                      </Col>
+                    ))}
                 </Row>
               </div>
             </Container>
@@ -410,8 +512,8 @@ const HomePage = () => {
                   </small>
                 </div>
                 <div className={styles.headerRightSection}>
-                  <Button 
-                    variant="link" 
+                  <Button
+                    variant="link"
                     className={styles.viewAllLink}
                     onClick={() => navigate('/search?q=%23allStories')}
                   >

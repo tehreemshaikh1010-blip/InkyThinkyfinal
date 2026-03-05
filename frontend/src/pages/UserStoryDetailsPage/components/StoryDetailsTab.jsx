@@ -14,6 +14,7 @@ const StoryDetailsTab = ({ story, setStory, onUpdate }) => {
     description: story?.description || "",
     cover_url: story?.cover_url || "",
     status: story?.status || "draft",
+     tags: story?.tags || [],
   });
   const [previewUrl, setPreviewUrl] = useState(story?.cover_url || null);
   const [saving, setSaving] = useState(false);
@@ -24,6 +25,7 @@ const StoryDetailsTab = ({ story, setStory, onUpdate }) => {
       description: story?.description || "",
       cover_url: story?.cover_url || "",
       status: story?.status || "draft",
+      tags: story?.tags || [],  // ← add this
     });
     setPreviewUrl(story?.cover_url || null);
     setShowEditModal(true);
@@ -60,18 +62,19 @@ const StoryDetailsTab = ({ story, setStory, onUpdate }) => {
         description: editData.description,
         cover_url: imageUrl,
         status: editData.status,
-        tags: story.tags.map((tag) => tag.name), // Convert tags to array of names
+      tags: editData.tags.map((tag) => tag.id), // ← change story.tags to editData.tagsonvert tags to array of names
       });
 
       toast.success("Story updated successfully");
       setShowEditModal(false);
       onUpdate();
-    } catch (err) {
-      console.error("Error updating story:", err);
-      toast.error("Failed to update story");
-    } finally {
-      setSaving(false);
-    }
+    }catch (err) {
+  console.error("Error updating story:", err);
+  toast.error("Failed to update story");
+
+} finally {
+  setSaving(false);
+}
   };
 
   return (
@@ -247,7 +250,7 @@ const StoryDetailsTab = ({ story, setStory, onUpdate }) => {
 
               <Form.Group>
                 <Form.Label>Tags</Form.Label>
-                <TagSelect story={story} setStory={setStory} />
+               <TagSelect story={editData} setStory={setEditData} />
               </Form.Group>
             </div>
           </Form>

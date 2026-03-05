@@ -1,40 +1,111 @@
-/* Wattpad-style Header */
+/* InkyTinky Header - Dark Navbar Theme */
 .header-wattpad {
-  background-color: #fff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.08);
-  padding: 0.5rem 0;
+  background-color: var(--color-navbar-bg, #1a1a1a) !important;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+  padding: 0.4rem 0;
+  border-bottom: 2px solid var(--color-primary, #c9a84c) !important;
 }
 
 .header-wattpad .navbar-brand {
   padding: 0;
 }
 
+/* Logo Styling */
 .header-wattpad .navbar-brand img {
-  height: 28px;
+  height: 42px;
   width: auto;
+  object-fit: contain;
+  border-radius: 4px;
+}
+
+/* Navbar toggler for mobile */
+.header-wattpad .navbar-toggler {
+  border-color: rgba(201, 168, 76, 0.4);
+}
+
+.header-wattpad .navbar-toggler-icon {
+  filter: invert(1);
+}
+
+/* Nav Links */
+.header-wattpad .nav-link {
+  color: var(--color-navbar-text, #f0ebe0) !important;
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-weight: 500;
+  font-size: 0.95rem;
+  padding: 0.5rem 1rem;
+  transition: color 0.2s ease;
+}
+
+.header-wattpad .nav-link:hover {
+  color: var(--color-primary, #c9a84c) !important;
 }
 
 /* Dropdown Styling */
 .header-dropdown .nav-link,
 .user-dropdown .nav-link {
-  color: #333;
+  color: var(--color-navbar-text, #f0ebe0) !important;
   font-weight: 500;
   padding: 0.5rem 1rem;
 }
 
 .header-dropdown .nav-link:hover,
 .user-dropdown .nav-link:hover {
-  color: #f26500;
+  color: var(--color-primary, #c9a84c) !important;
 }
 
 .header-dropdown .dropdown-toggle::after {
   margin-left: 0.5rem;
   vertical-align: middle;
+  border-top-color: var(--color-navbar-text, #f0ebe0);
+}
+
+/* Dropdown Menu */
+.dropdown-menu {
+  background-color: #222222;
+  border: 1px solid rgba(201, 168, 76, 0.2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  border-radius: 8px;
+  padding: 0.5rem 0;
+  margin-top: 0.5rem;
+  min-width: 200px;
+}
+
+.dropdown-item {
+  padding: 0.75rem 1.5rem;
+  color: #f0ebe0;
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-weight: 400;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease, color 0.2s ease;
+  display: flex;
+  align-items: center;
+}
+
+.dropdown-item i {
+  font-size: 15px;
+  width: 20px;
+  color: var(--color-primary, #c9a84c);
+}
+
+.dropdown-item:hover {
+  background-color: rgba(201, 168, 76, 0.12);
+  color: var(--color-primary, #c9a84c);
+}
+
+.dropdown-item:active {
+  background-color: var(--color-primary, #c9a84c);
+  color: #1a1a1a;
+}
+
+.dropdown-divider {
+  margin: 0.4rem 0;
+  border-color: rgba(201, 168, 76, 0.15);
 }
 
 /* Search Form */
 .search-form {
-  max-width: 350px;
+  max-width: 320px;
   width: 100%;
   margin: 0;
   align-items: center;
@@ -50,141 +121,108 @@
   left: 12px;
   top: 50%;
   transform: translateY(-50%);
-  color: #999;
-  font-size: 16px;
+  color: #9e9281;
+  font-size: 15px;
   pointer-events: none;
+  z-index: 1;
 }
 
 .search-input {
   width: 100%;
-  padding: 0.5rem 1rem 0.5rem 2.5rem;
-  border: 1px solid #e6e6e6;
-  border-radius: 4px;
+  padding: 0.45rem 1rem 0.45rem 2.4rem;
+  background-color: #2a2a2a;
+  border: 1px solid rgba(201, 168, 76, 0.25);
+  border-radius: 20px;
   font-size: 14px;
+  color: #f0ebe0;
+  font-family: 'Source Serif 4', Georgia, serif;
   transition: all 0.2s ease;
 }
 
 .search-input:focus {
-  border-color: #f26500;
-  box-shadow: 0 0 0 2px rgba(242, 101, 0, 0.1);
+  background-color: #2d2d2d;
+  border-color: var(--color-primary, #c9a84c);
+  box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.15);
   outline: none;
+  color: #f0ebe0;
 }
 
 .search-input::placeholder {
-  color: #999;
+  color: #6b6355;
 }
 
-/* Write Button */
+/* Write / Create Story Button */
 .write-btn {
-  color: #333;
+  color: var(--color-navbar-text, #f0ebe0) !important;
   text-decoration: none;
+  font-family: 'Source Serif 4', Georgia, serif;
   font-weight: 500;
-  padding: 0.5rem 1rem;
-  transition: color 0.2s ease;
+  font-size: 0.9rem;
+  padding: 0.45rem 1rem;
+  border: 1px solid rgba(201, 168, 76, 0.3);
+  border-radius: 20px;
+  transition: all 0.2s ease;
+  background: transparent;
 }
 
 .write-btn:hover {
-  color: #f26500;
+  color: var(--color-primary, #c9a84c) !important;
+  border-color: var(--color-primary, #c9a84c);
+  background: rgba(201, 168, 76, 0.08);
 }
 
 .write-btn i {
-  font-size: 16px;
+  font-size: 14px;
+  color: var(--color-primary, #c9a84c);
 }
 
-/* Login Button */
+/* Login / Sign Up Button */
 .login-btn {
-  color: #333;
+  color: #c9a84c !important;
+  background-color: transparent;
   text-decoration: none;
-  font-weight: 500;
-  padding: 0.5rem 1.5rem;
+  font-family: 'Source Serif 4', Georgia, serif;
+  font-weight: 600;
+  font-size: 0.9rem;
+  padding: 0.45rem 1.4rem;
+  border-radius: 20px;
   transition: all 0.2s ease;
+  border: 2px solid #c9a84c !important;
 }
 
 .login-btn:hover {
-  color: #f26500;
+  background-color: #c9a84c;
+  color: #1a1a1a !important;
+  transform: translateY(-1px);
 }
 
-/* User Avatar Wrapper */
+.header-wattpad .btn-link.login-btn {
+  color: #c9a84c !important;
+}
+/* User Avatar */
 .user-avatar-wrapper {
   position: relative;
   display: inline-block;
   cursor: pointer;
 }
 
-/* User Avatar */
 .user-avatar {
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
   border-radius: 50%;
   object-fit: cover;
-  border: 2px solid #e6e6e6;
+  border: 2px solid rgba(201, 168, 76, 0.4);
   cursor: pointer;
   transition: border-color 0.2s ease;
   display: block;
 }
 
 .user-avatar:hover {
-  border-color: #f26500;
+  border-color: var(--color-primary, #c9a84c);
+  box-shadow: 0 0 0 3px rgba(201, 168, 76, 0.2);
 }
 
-/* Notification Badge */
-.notification-badge {
-  position: absolute;
-  top: 2px;
-  right: 2px;
-  width: 10px;
-  height: 10px;
-  background-color: #ff3b30;
-  border-radius: 50%;
-  border: 2px solid #fff;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-/* Hide badge when no notifications (you can toggle this with JavaScript) */
-.notification-badge.hidden {
-  display: none;
-}
-
-/* Dropdown Menu Styling */
-.dropdown-menu {
-  border: 1px solid #e6e6e6;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  border-radius: 8px;
-  padding: 0.5rem 0;
-  margin-top: 0.5rem;
-  min-width: 200px;
-}
-
-.dropdown-item {
-  padding: 0.75rem 1.5rem;
-  color: #333;
-  font-weight: 500;
-  transition: background-color 0.2s ease;
-  display: flex;
-  align-items: center;
-}
-
-.dropdown-item i {
-  font-size: 16px;
-  width: 20px;
-}
-
-.dropdown-item:hover {
-  background-color: #f8f8f8;
-  color: #f26500;
-}
-
-.dropdown-item:active {
-  background-color: #f26500;
-  color: white;
-}
-
-.dropdown-divider {
-  margin: 0.5rem 0;
-  border-color: #e6e6e6;
-}
-
-/* User Dropdown Specific */
+/* User Dropdown Toggle */
 .user-dropdown .dropdown-toggle {
   padding: 0;
   border: none;
@@ -195,27 +233,115 @@
   display: none;
 }
 
-/* Mobile Responsive */
-@media (max-width: 991px) {
-  .search-form {
-    max-width: 100%;
-    margin: 1rem 0;
-  }
-
-  .header-wattpad .navbar-nav {
-    padding: 1rem 0;
-  }
-
-  .header-wattpad .nav-link {
-    padding: 0.75rem 0;
-  }
-
-  .user-avatar {
-    margin-top: 0.5rem;
-  }
+/* Notification Badge */
+.notification-badge {
+  position: absolute;
+  top: 1px;
+  right: 1px;
+  width: 9px;
+  height: 9px;
+  background-color: #e74c3c;
+  border-radius: 50%;
+  border: 2px solid #1a1a1a;
 }
 
-/* Remove default Bootstrap button styles */
+.notification-badge.hidden {
+  display: none;
+}
+
+/* Search Suggestions */
+.search-suggestions {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  background: #222222;
+  border: 1px solid rgba(201, 168, 76, 0.2);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  max-height: 400px;
+  overflow-y: auto;
+  z-index: 1000;
+}
+
+.suggestion-item {
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  border-bottom: 1px solid rgba(201, 168, 76, 0.08);
+}
+
+.suggestion-item:last-child {
+  border-bottom: none;
+}
+
+.suggestion-item:hover {
+  background-color: rgba(201, 168, 76, 0.1);
+}
+
+.suggestion-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.suggestion-cover {
+  width: 36px;
+  height: 50px;
+  object-fit: cover;
+  border-radius: 3px;
+  flex-shrink: 0;
+  border: 1px solid rgba(201, 168, 76, 0.2);
+}
+
+.suggestion-text { flex: 1; min-width: 0; }
+
+.suggestion-title {
+  font-weight: 600;
+  color: #f0ebe0;
+  font-size: 13px;
+  margin-bottom: 3px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: 'Playfair Display', Georgia, serif;
+}
+
+.suggestion-author {
+  font-size: 11px;
+  color: #9e9281;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Scrollbar for suggestions */
+.search-suggestions::-webkit-scrollbar { width: 4px; }
+.search-suggestions::-webkit-scrollbar-track { background: #1a1a1a; }
+.search-suggestions::-webkit-scrollbar-thumb {
+  background: rgba(201, 168, 76, 0.4);
+  border-radius: 2px;
+}
+
+/* Loading & Empty States */
+.suggestion-loading,
+.suggestion-empty {
+  padding: 18px 16px;
+  text-align: center;
+  color: #9e9281;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.suggestion-empty i {
+  font-size: 18px;
+  color: rgba(201, 168, 76, 0.4);
+}
+
+/* Remove Bootstrap default btn-link styles */
 .header-wattpad .btn-link {
   text-decoration: none;
   padding: 0;
@@ -227,106 +353,24 @@
   box-shadow: none;
 }
 
-/* Search Suggestions */
-.search-suggestions {
-  position: absolute;
-  top: calc(100% + 8px);
-  left: 0;
-  right: 0;
-  background: white;
-  border: 1px solid #e6e6e6;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  max-height: 400px;
-  overflow-y: auto;
-  z-index: 1000;
-}
+/* Mobile */
+@media (max-width: 991px) {
+  .search-form {
+    max-width: 100%;
+    margin: 0.75rem 0;
+  }
 
-.suggestion-item {
-  padding: 12px 16px;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  border-bottom: 1px solid #f0f0f0;
-}
+  .header-wattpad .navbar-nav {
+    padding: 0.75rem 0;
+    border-top: 1px solid rgba(201, 168, 76, 0.1);
+    margin-top: 0.5rem;
+  }
 
-.suggestion-item:last-child {
-  border-bottom: none;
-}
+  .header-wattpad .nav-link {
+    padding: 0.65rem 0;
+  }
 
-.suggestion-item:hover {
-  background-color: #f8f8f8;
-}
-
-.suggestion-content {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.suggestion-cover {
-  width: 40px;
-  height: 56px;
-  object-fit: cover;
-  border-radius: 4px;
-  flex-shrink: 0;
-}
-
-.suggestion-text {
-  flex: 1;
-  min-width: 0;
-}
-
-.suggestion-title {
-  font-weight: 600;
-  color: #333;
-  font-size: 14px;
-  margin-bottom: 4px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.suggestion-author {
-  font-size: 12px;
-  color: #666;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-/* Scrollbar styling for suggestions */
-.search-suggestions::-webkit-scrollbar {
-  width: 6px;
-}
-
-.search-suggestions::-webkit-scrollbar-track {
-  background: #f0f0f0;
-  border-radius: 0 8px 8px 0;
-}
-
-.search-suggestions::-webkit-scrollbar-thumb {
-  background: #ccc;
-  border-radius: 3px;
-}
-
-.search-suggestions::-webkit-scrollbar-thumb:hover {
-  background: #999;
-}
-
-/* Loading and Empty States */
-.suggestion-loading,
-.suggestion-empty {
-  padding: 20px 16px;
-  text-align: center;
-  color: #666;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-}
-
-.suggestion-empty i {
-  font-size: 20px;
-  color: #999;
+  .user-avatar {
+    margin-top: 0.5rem;
+  }
 }

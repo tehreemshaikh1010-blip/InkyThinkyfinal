@@ -33,7 +33,7 @@ router.get('/search', async (req, res, next) => {
 router.get('/:id', async (req, res, next) => {
   try {
     const [users] = await pool.query(
-      'SELECT id, username, email, bio, avatar_url, created_at FROM users WHERE id = ?',
+      'SELECT id, username, email, bio, avatar_url, banner_url, created_at FROM users WHERE id = ?',
       [req.params.id]
     );
     
@@ -50,9 +50,10 @@ router.get('/:id', async (req, res, next) => {
 });
 
 // PUT /me - Update own profile
+// PUT /me - Update own profile
 router.put('/me', auth, async (req, res, next) => {
   try {
-    const { username, bio, avatar_url } = req.body;
+    const { username, bio, avatar_url, banner_url } = req.body;  // ✅ add banner_url
     
     const updates = [];
     const values = [];
@@ -69,6 +70,10 @@ router.put('/me', auth, async (req, res, next) => {
       updates.push('avatar_url = ?');
       values.push(avatar_url);
     }
+    if (banner_url !== undefined) {          // ✅ add this block
+      updates.push('banner_url = ?');
+      values.push(banner_url);
+    }
     
     if (updates.length === 0) {
       return res.status(400).json({ ok: false, message: 'No fields to update', errorCode: 'NO_UPDATES' });
@@ -82,7 +87,7 @@ router.put('/me', auth, async (req, res, next) => {
     );
 
     const [users] = await pool.query(
-      'SELECT id, username, email, bio, avatar_url FROM users WHERE id = ?',
+      'SELECT id, username, email, bio, avatar_url, banner_url, created_at FROM users WHERE id = ?',
       [req.user.id]
     );
 
@@ -91,24 +96,6 @@ router.put('/me', auth, async (req, res, next) => {
     next(err);
   }
 });
-
-// GET /users/:id/followers
-router.get('/:id/followers', async (req, res, next) => {
-  try {    
-    const [followers] = await pool.query(`
-      SELECT u.id, u.username, u.avatar_url, f.created_at as followed_at
-      FROM follows f
-      JOIN users u ON f.follower_id = u.id
-      WHERE f.author_id = ?
-      ORDER BY f.created_at DESC
-    `, [req.params.id]);
-
-    res.json({ ok: true, data: followers });
-  } catch (err) {
-    next(err);
-  }
-});
-
 // GET /users/:id/following
 router.get('/:id/following', async (req, res, next) => {
   try {    

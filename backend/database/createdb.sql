@@ -25,12 +25,12 @@ DROP TABLE IF EXISTS users;
 CREATE TABLE users (
   id            INT AUTO_INCREMENT PRIMARY KEY,
   username      VARCHAR(50)  NOT NULL UNIQUE,
-  email         VARCHAR(255) NOT NULL UNIQUE,
+  email         VARCHAR(191) NOT NULL UNIQUE,
   password_hash VARCHAR(255) NOT NULL,
   avatar_url    VARCHAR(500),
   bio           VARCHAR(500),
-  created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  created_at    TIMESTAMP NULL,
+  updated_at    TIMESTAMP NULL 
 ) ENGINE=InnoDB;
 
 -- STORIES
@@ -39,16 +39,15 @@ CREATE TABLE stories (
   user_id     INT NOT NULL,
   title       VARCHAR(255) NOT NULL,
   description VARCHAR(1000),
-  tags        JSON,
+  tags        TEXT,
   cover_url   VARCHAR(500),
   status      ENUM('draft','published','archived') NOT NULL DEFAULT 'draft',
-  created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  created_at  TIMESTAMP NULL,
+  updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ,
   CONSTRAINT fk_stories_user
     FOREIGN KEY (user_id) REFERENCES users(id)
     ON DELETE CASCADE ON UPDATE CASCADE,
-  INDEX idx_stories_user (user_id),
-  FULLTEXT INDEX ftx_stories_title_desc (title, description)
+ INDEX idx_stories_user (user_id)
 ) ENGINE=InnoDB;
 
 -- CHAPTERS
@@ -59,8 +58,8 @@ CREATE TABLE chapters (
   content       LONGTEXT,
   chapter_order INT NOT NULL,
   is_published  TINYINT(1) NOT NULL DEFAULT 0,
-  created_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at    DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  created_at    TIMESTAMP NULL,
+  updated_at    TIMESTAMP NULL ,
   CONSTRAINT fk_chapters_story
     FOREIGN KEY (story_id) REFERENCES stories(id)
     ON DELETE CASCADE ON UPDATE CASCADE,
@@ -72,7 +71,7 @@ CREATE TABLE chapters (
 CREATE TABLE votes (
   chapter_id INT NOT NULL,
   user_id    INT NOT NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP NULL,
   PRIMARY KEY (chapter_id, user_id),
   CONSTRAINT fk_votes_chapter
     FOREIGN KEY (chapter_id) REFERENCES chapters(id)
@@ -86,7 +85,7 @@ CREATE TABLE votes (
 CREATE TABLE follows (
   follower_id INT NOT NULL,
   author_id   INT NOT NULL,
-  created_at  DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at  TIMESTAMP NULL,
   PRIMARY KEY (follower_id, author_id),
   CONSTRAINT fk_follows_follower
     FOREIGN KEY (follower_id) REFERENCES users(id)
@@ -100,7 +99,7 @@ CREATE TABLE follows (
 CREATE TABLE followed_stories (
   user_id    INT NOT NULL,
   story_id   INT NOT NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP NULL,
   PRIMARY KEY (user_id, story_id),
   CONSTRAINT fk_followed_user
     FOREIGN KEY (user_id) REFERENCES users(id)
@@ -116,7 +115,7 @@ CREATE TABLE favorite_lists (
   user_id    INT NOT NULL,
   name       VARCHAR(255) NOT NULL,
   is_private TINYINT(1) NOT NULL DEFAULT 0,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP NULL,
   CONSTRAINT fk_favlists_user
     FOREIGN KEY (user_id) REFERENCES users(id)
     ON DELETE CASCADE ON UPDATE CASCADE,
@@ -126,7 +125,7 @@ CREATE TABLE favorite_lists (
 CREATE TABLE favorite_list_items (
   list_id  INT NOT NULL,
   story_id INT NOT NULL,
-  added_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  added_at TIMESTAMP NULL,
   PRIMARY KEY (list_id, story_id),
   CONSTRAINT fk_favitems_list
     FOREIGN KEY (list_id) REFERENCES favorite_lists(id)
@@ -163,7 +162,7 @@ CREATE TABLE story_comments (
   user_id            INT NOT NULL,
   content            VARCHAR(1000) NOT NULL,
   parent_comment_id  INT NULL,
-  created_at         DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at         TIMESTAMP NULL,
   CONSTRAINT fk_comments_story
     FOREIGN KEY (story_id) REFERENCES stories(id)
     ON DELETE CASCADE ON UPDATE CASCADE,
@@ -188,8 +187,8 @@ CREATE TABLE reading_history (
   user_id         INT NOT NULL,
   story_id        INT NOT NULL,
   last_chapter_id INT NULL,
-  created_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at      DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  created_at      TIMESTAMP NULL,
+  updated_at      TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ,
   CONSTRAINT fk_hist_user
     FOREIGN KEY (user_id) REFERENCES users(id)
     ON DELETE CASCADE ON UPDATE CASCADE,
@@ -209,7 +208,7 @@ CREATE TABLE story_reads (
   user_id    INT NOT NULL,
   story_id   INT NOT NULL,
   chapter_id INT NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP NULL,
   CONSTRAINT fk_storyreads_user
     FOREIGN KEY (user_id) REFERENCES users(id)
     ON DELETE CASCADE ON UPDATE CASCADE,
@@ -233,8 +232,8 @@ CREATE TABLE story_reviews (
   title          VARCHAR(255),
   content        VARCHAR(2000),
   is_recommended TINYINT(1) NOT NULL DEFAULT 0,
-  created_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at     DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  created_at     TIMESTAMP NULL,
+  updated_at     TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ,
   CONSTRAINT fk_reviews_story
     FOREIGN KEY (story_id) REFERENCES stories(id)
     ON DELETE CASCADE ON UPDATE CASCADE,
@@ -249,7 +248,7 @@ CREATE TABLE story_reviews (
 CREATE TABLE review_likes (
   review_id INT NOT NULL,
   user_id   INT NOT NULL,
-  created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  created_at TIMESTAMP NULL,
   PRIMARY KEY (review_id, user_id),
   CONSTRAINT fk_reviewlikes_review
     FOREIGN KEY (review_id) REFERENCES story_reviews(id)
@@ -257,4 +256,36 @@ CREATE TABLE review_likes (
   CONSTRAINT fk_reviewlikes_user
     FOREIGN KEY (user_id) REFERENCES users(id)
     ON DELETE CASCADE ON UPDATE CASCADE
+) ENGINE=InnoDB;
+
+-- READING LISTS
+CREATE TABLE reading_lists (
+  id          INT AUTO_INCREMENT PRIMARY KEY,
+  user_id     INT NOT NULL,
+  name        VARCHAR(255) NOT NULL,
+  description VARCHAR(1000) NULL,
+  is_public   TINYINT(1) NOT NULL DEFAULT 1,
+  created_at  TIMESTAMP NULL,
+  updated_at  TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT fk_rl_user
+    FOREIGN KEY (user_id) REFERENCES users(id)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX idx_rl_user (user_id)
+) ENGINE=InnoDB;
+
+CREATE TABLE reading_list_stories (
+  id              INT AUTO_INCREMENT PRIMARY KEY,
+  reading_list_id INT NOT NULL,
+  story_id        INT NOT NULL,
+  display_order   INT NOT NULL DEFAULT 0,
+  added_at        TIMESTAMP NULL,
+  UNIQUE KEY uq_rl_story (reading_list_id, story_id),
+  CONSTRAINT fk_rls_list
+    FOREIGN KEY (reading_list_id) REFERENCES reading_lists(id)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  CONSTRAINT fk_rls_story
+    FOREIGN KEY (story_id) REFERENCES stories(id)
+    ON DELETE CASCADE ON UPDATE CASCADE,
+  INDEX idx_rls_list (reading_list_id),
+  INDEX idx_rls_story (story_id)
 ) ENGINE=InnoDB;

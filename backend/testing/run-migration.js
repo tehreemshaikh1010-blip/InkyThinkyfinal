@@ -21,7 +21,7 @@ async function runMigration() {
     console.log('✅ Connected to database\n');
 
     // Read and execute the migration SQL
-    const sqlPath = path.join(__dirname, 'database', 'add_chapter_comments.sql');
+    const sqlPath = path.join(__dirname, '../database', 'add_chapter_comments.sql');
     const sql = fs.readFileSync(sqlPath, 'utf8');
 
     console.log('Running migration: add_chapter_comments.sql');

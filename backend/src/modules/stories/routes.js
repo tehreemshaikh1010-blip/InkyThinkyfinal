@@ -1,3 +1,5 @@
+// src/modules/stories/routes.js
+
 const express = require('express');
 const pool = require('../../db');
 const auth = require('../../mw/auth');
@@ -12,11 +14,8 @@ router.get('/', async (req, res, next) => {
     const { page, size, offset } = getPagination(req);
     const { q, tag, sort = 'created_at', order = 'desc' } = req.query;
     
-    // Validate sort field
     const validSortFields = ['created_at', 'updated_at', 'title'];
     const sortField = validSortFields.includes(sort) ? sort : 'created_at';
-    
-    // Validate order
     const sortOrder = order.toLowerCase() === 'asc' ? 'ASC' : 'DESC';
     
     let query = `
@@ -54,7 +53,6 @@ router.get('/', async (req, res, next) => {
     
     const [rows] = await pool.query(query, params);
 
-    // Fetch tags for each story
     for (const story of rows) {
       const [tags] = await pool.query(`
         SELECT t.id, t.name 
@@ -76,7 +74,6 @@ router.get('/:id/chapters', async (req, res, next) => {
   try {
     const storyId = req.params.id;
     
-    // Check if user is the author
     let isAuthor = false;
     if (req.headers.authorization) {
       try {
@@ -139,7 +136,6 @@ router.post('/', auth, async (req, res, next) => {
       return res.status(400).json({ ok: false, message: 'Title is required', errorCode: 'MISSING_TITLE' });
     }
     
-    // Insert story
     const [result] = await pool.query(
       `INSERT INTO stories (user_id, title, description, cover_url, status, created_at)
        VALUES (?, ?, ?, ?, 'draft', NOW())`,
@@ -149,14 +145,11 @@ router.post('/', auth, async (req, res, next) => {
     const [stories] = await pool.query('SELECT * FROM stories WHERE id = ?', [result.insertId]);
     const story = stories[0];
     
-    // Handle tags if provided
+    // Handle tags by ID
     if (tags && Array.isArray(tags) && tags.length > 0) {
       for (const tagId of tags) {
-        // Verify tag exists
         const [tagRows] = await pool.query('SELECT id FROM tags WHERE id = ?', [tagId]);
-        
         if (tagRows.length > 0) {
-          // Insert story_tag
           await pool.query(
             'INSERT IGNORE INTO story_tags (story_id, tag_id) VALUES (?, ?)',
             [story.id, tagId]
@@ -198,7 +191,6 @@ router.put('/:id', auth, async (req, res, next) => {
       values.push(cover_url);
     }
     if (status) {
-      // Only allow 'draft' or 'published' status
       if (!['draft', 'published'].includes(status)) {
         return res.status(400).json({ 
           ok: false, 
@@ -214,7 +206,6 @@ router.put('/:id', auth, async (req, res, next) => {
       return res.status(400).json({ ok: false, message: 'No fields to update', errorCode: 'NO_UPDATES' });
     }
 
-    // Start a transaction if we have tag updates
     const connection = await pool.getConnection();
     await connection.beginTransaction();
 
@@ -228,55 +219,39 @@ router.put('/:id', auth, async (req, res, next) => {
           values
         );
         
-        // If story status is being changed, update all chapters accordingly
         if (status) {
           const publishStatus = status === 'published' ? 1 : 0;
           await connection.query(
             `UPDATE chapters SET is_published = ?, updated_at = NOW() WHERE story_id = ?`,
             [publishStatus, req.params.id]
           );
-          console.log(`✅ Auto-${status === 'published' ? 'published' : 'unpublished'} all chapters of story ${req.params.id}`);
         }
       }
 
-      // Handle tags update if provided
+      // ✅ Handle tags by ID (not name)
       if (tags && Array.isArray(tags)) {
-        // First remove all existing tags
         await connection.query('DELETE FROM story_tags WHERE story_id = ?', [req.params.id]);
         
-        // Then add new tags
-        for (const tagName of tags) {
-          // Upsert tag
-          await connection.query(
-            'INSERT INTO tags (name) VALUES (?) ON DUPLICATE KEY UPDATE name = name',
-            [tagName]
-          );
-          
-          const [tagRows] = await connection.query('SELECT id FROM tags WHERE name = ?', [tagName]);
-          const tagId = tagRows[0].id;
-          
-          // Insert story_tag
-          await connection.query(
-            'INSERT IGNORE INTO story_tags (story_id, tag_id) VALUES (?, ?)',
-            [req.params.id, tagId]
-          );
+        for (const tagId of tags) {
+          const [tagRows] = await connection.query('SELECT id FROM tags WHERE id = ?', [tagId]);
+          if (tagRows.length > 0) {
+            await connection.query(
+              'INSERT IGNORE INTO story_tags (story_id, tag_id) VALUES (?, ?)',
+              [req.params.id, tagId]
+            );
+          }
         }
       }
 
       await connection.commit();
 
-      // Get updated story with tags
       const story = await getStoryWithTags(req.params.id);
       res.json({ ok: true, data: story });
     } catch (err) {
-      if (connection) {
-        await connection.rollback();
-      }
+      await connection.rollback();
       throw err;
     } finally {
-      if (connection) {
-        connection.release();
-      }
+      connection.release();
     }
   } catch (err) {
     next(err);
@@ -292,19 +267,15 @@ router.post('/:id/publish', auth, async (req, res, next) => {
       return res.status(403).json({ ok: false, message: 'Not authorized', errorCode: 'NOT_AUTHORIZED' });
     }
     
-    // Publish the story
     await pool.query(
       `UPDATE stories SET status = 'published', updated_at = NOW() WHERE id = ?`,
       [req.params.id]
     );
     
-    // Also publish all chapters
     await pool.query(
       `UPDATE chapters SET is_published = 1, updated_at = NOW() WHERE story_id = ?`,
       [req.params.id]
     );
-    
-    console.log(`✅ Published story ${req.params.id} and all its chapters`);
     
     const [stories] = await pool.query('SELECT * FROM stories WHERE id = ?', [req.params.id]);
 
@@ -327,10 +298,7 @@ router.delete('/:id', auth, async (req, res, next) => {
     
     await connection.beginTransaction();
     
-    // Delete all chapters associated with the story first
     await connection.query('DELETE FROM chapters WHERE story_id = ?', [req.params.id]);
-    
-    // Then delete the story
     await connection.query('DELETE FROM stories WHERE id = ?', [req.params.id]);
     
     await connection.commit();

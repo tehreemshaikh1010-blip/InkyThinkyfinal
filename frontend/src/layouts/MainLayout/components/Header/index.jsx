@@ -24,7 +24,6 @@ function Header() {
 
   useEffect(() => {
     checkAuthStatus();
-    console.log(user);
     fetchTags();
   }, []);
 
@@ -39,8 +38,6 @@ function Header() {
         localStorage.removeItem("authToken");
         setUser(null);
       }
-    } else {
-      console.log("No auth token found");
     }
   };
 
@@ -67,7 +64,6 @@ function Header() {
         `http://localhost:4000/stories?q=${encodeURIComponent(query)}&size=5`
       );
       const data = await response.json();
-      // Fix: The API returns data.stories, not data.data
       setSuggestions(data.stories || []);
       setShowSuggestions(true);
     } catch (err) {
@@ -86,20 +82,16 @@ function Header() {
     }
   };
 
-  // Debounced search handler
   const handleSearchInput = useCallback(
     (value) => {
-      // Clear existing timer
       if (debounceTimerRef.current) {
         clearTimeout(debounceTimerRef.current);
       }
-
-      // Set new timer
       debounceTimerRef.current = setTimeout(() => {
         if (value.trim()) {
           fetchSuggestions(value);
         }
-      }, 300); // 300ms delay
+      }, 300);
     },
     [fetchSuggestions]
   );
@@ -117,7 +109,6 @@ function Header() {
     setShowSuggestions(false);
   };
 
-  // Close suggestions when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (
@@ -127,14 +118,10 @@ function Header() {
         setShowSuggestions(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (debounceTimerRef.current) {
@@ -146,20 +133,20 @@ function Header() {
   const handleLogout = () => {
     localStorage.removeItem("authToken");
     setUser(null);
-    // Dispatch custom event to notify components about logout
     window.dispatchEvent(new Event("userLogout"));
     navigate("/");
   };
 
   return (
-    <Navbar bg="white" expand="lg" className="header-wattpad border-bottom">
+    <Navbar expand="lg" className="header-wattpad border-bottom">
       <Container fluid className="px-4">
-        {/* Logo */}
+
+        {/* ── Logo ── */}
         <Navbar.Brand as={Link} to="/" className="me-4">
           <img
-            src="/Hompage/main_logo.svg"
-            alt="Whatpad"
-            height="28"
+            src="/inkytinky-logo-v2.jpg"
+            alt="InkyTinky"
+            height="42"
             className="d-inline-block align-top"
           />
         </Navbar.Brand>
@@ -167,8 +154,9 @@ function Header() {
         <Navbar.Toggle aria-controls="navbar-content" />
 
         <Navbar.Collapse id="navbar-content">
-          {/* Navigation Links */}
-          <Nav className="me-auto">
+
+          {/* ── Left Nav ── */}
+          <Nav className="me-auto align-items-lg-center">
             <NavDropdown
               title="Browse"
               id="browse-dropdown"
@@ -189,13 +177,13 @@ function Header() {
               ))}
             </NavDropdown>
 
-            {/* Search Bar - Moved next to Browse */}
+            {/* Search Bar */}
             <Form className="d-flex search-form ms-3" onSubmit={handleSearch}>
               <div className="search-wrapper" ref={searchWrapperRef}>
                 <i className="bi bi-search search-icon"></i>
                 <Form.Control
                   type="search"
-                  placeholder="Search"
+                  placeholder="Search stories..."
                   className="search-input"
                   value={searchQuery}
                   onChange={handleSearchChange}
@@ -206,8 +194,9 @@ function Header() {
                     {isLoadingSuggestions ? (
                       <div className="suggestion-loading">
                         <div
-                          className="spinner-border spinner-border-sm text-primary"
+                          className="spinner-border spinner-border-sm"
                           role="status"
+                          style={{ color: "#c9a84c" }}
                         >
                           <span className="visually-hidden">Loading...</span>
                         </div>
@@ -229,12 +218,8 @@ function Header() {
                               />
                             )}
                             <div className="suggestion-text">
-                              <div className="suggestion-title">
-                                {story.title}
-                              </div>
-                              <div className="suggestion-author">
-                                by {story.author_name}
-                              </div>
+                              <div className="suggestion-title">{story.title}</div>
+                              <div className="suggestion-author">by {story.author_name}</div>
                             </div>
                           </div>
                         </div>
@@ -251,19 +236,17 @@ function Header() {
             </Form>
           </Nav>
 
-          {/* Right Side Nav */}
-          <Nav className="ms-auto d-flex align-items-center">
+          {/* ── Right Nav ── */}
+          <Nav className="ms-auto d-flex align-items-center gap-2">
             {user ? (
               <>
-                {/* Write Button */}
-                <Nav.Link as={Link} to="/work/story" className="me-2">
+                <Nav.Link as={Link} to="/work/story" className="p-0 me-1">
                   <Button variant="link" className="write-btn">
                     <i className="bi bi-pencil me-1"></i>
                     Create Story
                   </Button>
                 </Nav.Link>
 
-                {/* User Avatar Dropdown */}
                 <NavDropdown
                   title={
                     <div className="user-avatar-wrapper d-flex align-items-center">
@@ -272,14 +255,14 @@ function Header() {
                           user.avatar_url ||
                           `https://ui-avatars.com/api/?name=${encodeURIComponent(
                             user.username
-                          )}&background=f26500&color=fff&bold=true`
+                          )}&background=c9a84c&color=1a1a1a&bold=true`
                         }
                         alt={user.username}
                         className="user-avatar"
                         onError={(e) => {
                           e.target.src = `https://ui-avatars.com/api/?name=${encodeURIComponent(
                             user.username
-                          )}&background=f26500&color=fff&bold=true`;
+                          )}&background=c9a84c&color=1a1a1a&bold=true`;
                         }}
                       />
                       <span className="notification-badge"></span>
@@ -305,15 +288,14 @@ function Header() {
                 </NavDropdown>
               </>
             ) : (
-              <>
-                <Nav.Link as={Link} to="/auth">
-                  <Button variant="link" className="login-btn">
-                    Login
-                  </Button>
-                </Nav.Link>
-              </>
+              <Nav.Link as={Link} to="/auth" className="p-0">
+                <Button variant="link" className="login-btn">
+                  Login
+                </Button>
+              </Nav.Link>
             )}
           </Nav>
+
         </Navbar.Collapse>
       </Container>
     </Navbar>

@@ -11,6 +11,7 @@ import CreateStoryPage from "../../pages/CreateStoryPage";
 import UserStoriesPage from "../../pages/UserStoriesPage";
 import CreateChapterPage from "../../pages/CreateChapterPage";
 import UserStoryDetailPage from "../../pages/UserStoryDetailsPage";
+import GenresPage from "../../pages/GenresPage";
 
 const AppRouter = () => {
   return (
@@ -116,6 +117,14 @@ const AppRouter = () => {
             </CreateStoryLayout>
           }
         />
+        <Route
+  path="/genres"
+  element={
+    <MainLayout>
+      <GenresPage />
+    </MainLayout>
+  }
+/>
       </Routes>
     </BrowserRouter>
   );
