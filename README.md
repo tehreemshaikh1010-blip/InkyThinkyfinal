@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 
 
 Wattpad clone – whatapp
@@ -195,3 +196,6 @@ Lộ trình mở rộng sau MVP
 Giấy phép
 ---------
 Dùng cho mục đích học tập
+=======
+# InkyThinkyfinal
+>>>>>>> 8e6b95df2a82a038945922114ab599bd7c10b5e7
